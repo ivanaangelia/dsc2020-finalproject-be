@@ -1,12 +1,13 @@
 const { urlencoded } = require('express')
 const express = require('express')
 const app = express()
+const port = 3000
 app.use(express.urlencoded({extended: true}))
 
 const provincesRoute = require('./routes/provinces')
 app.use('/api/v1/provinces', provincesRoute)
 
-app.listen(3000, console.log('Initializing server...'))
+app.listen(port, console.log('Initializing server...'))
     .on('error', (error) => {
         console.log('Error occured')
         process.exit(1)
