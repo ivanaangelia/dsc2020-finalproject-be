@@ -14,6 +14,10 @@ module.exports = Object.defineProperty(exports, "connection", {
     })
 })
 
+app.use((req, res, next) => {
+    res.send('404 not found')
+})
+
 const provincesRoute = require('./routes/provinces')
 app.use('/api/v1/provinces', provincesRoute)
 
