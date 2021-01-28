@@ -47,7 +47,7 @@ const getProvinces = (req, res) => {
 
 const getProvince = (req, res) => {
     var { id } = req.params
-    conn.query(`SELECT * FROM provinces WHERE RIGHT(url, 1) = ? AND isDeleted = 0`, [id], function (error, results, fields) {
+    conn.query(`SELECT * FROM provinces WHERE id = ? AND isDeleted = 0`, [id], function (error, results, fields) {
         if (error || results == '') res.json({ status: false, message: 'Id not found' })
         else {
             results = JSON.parse(JSON.stringify(results))
@@ -66,7 +66,7 @@ const getProvince = (req, res) => {
 
 const updateProvince = (req, res) => {
     var { id, name, recovered, death, positive } = req.body
-    conn.query(`SELECT * FROM provinces WHERE RIGHT(url, 1) = ? AND isDeleted = 0`, [id], (error, results, fields) => {
+    conn.query(`SELECT * FROM provinces WHERE id = ? AND isDeleted = 0`, [id], (error, results, fields) => {
         if (error || results == '') res.json({ status: false, message: 'No Data' })
         else {
             results = JSON.parse(JSON.stringify(results))
@@ -78,7 +78,7 @@ const updateProvince = (req, res) => {
                     positive: results[0].positive
                 }
             ]
-            conn.query(`UPDATE provinces SET name = ?, recovered = ?, death = ?, positive = ? WHERE RIGHT(url, 1) = ? AND isDeleted = 0`, [name, recovered, death, positive, id], (error, results, fields) => {
+            conn.query(`UPDATE provinces SET name = ?, recovered = ?, death = ?, positive = ? WHERE id = ? AND isDeleted = 0`, [name, recovered, death, positive, id], (error, results, fields) => {
                 if (error) res.json({ status: false, message: 'Updating data failed' })
                 else if (results == '') res.json({ status: false, message: 'Id not found' })
                 else {
@@ -100,7 +100,7 @@ const updateProvince = (req, res) => {
 
 const deleteProvince = (req, res) => {
     var { id } = req.body
-    conn.query(`SELECT * FROM provinces WHERE RIGHT(url, 1) = ? AND isDeleted = 0`, [id], (error, results, fields) => {
+    conn.query(`SELECT * FROM provinces WHERE id = ? AND isDeleted = 0`, [id], (error, results, fields) => {
         if (error || results == '') res.json({ status: false, message: 'No Data' })
         else {
             results = JSON.parse(JSON.stringify(results))
@@ -112,7 +112,7 @@ const deleteProvince = (req, res) => {
                     positive: results[0].positive
                 }
             ]
-            conn.query(`UPDATE provinces SET isDeleted=1 WHERE RIGHT(url, 1) = ?`, [id], (error, results, fields) => {
+            conn.query(`UPDATE provinces SET isDeleted=1 WHERE id = ?`, [id], (error, results, fields) => {
                 if (error) res.json({ status: false, message: 'Destroy data failed' })
                 else if (results == '') res.json({ status: false, message: 'Id not found' })
                 else {
