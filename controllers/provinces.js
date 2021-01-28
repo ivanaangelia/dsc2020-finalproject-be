@@ -12,7 +12,7 @@ const addProvince = (req, res) => {
             global.counter = results.length
             const { name, recovered, death, positive } = req.body
             var url = '/api/v1/provinces/' + (global.counter + 1)
-            conn.query(`INSERT INTO provinces(name, recovered, death, positive, url) VALUES ('${name}',${recovered},${death},${positive},'${url}')`, function (error, results, fields) {
+            conn.query(`INSERT INTO provinces(name, recovered, death, positive, url) VALUES (?, ?, ?, ?, ?)`, [name, recovered, death, positive, url], function (error, results, fields) {
                 if (error || results == '') res.json({ status: false, message: 'Storing data failed' })
                 else {
                     res.json({ status: true, stored: req.body })
