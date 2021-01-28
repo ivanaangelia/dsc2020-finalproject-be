@@ -1,32 +1,45 @@
+var app = require('../app')
+conn = app.connection
 const { json } = require('body-parser');
-const mysql = require('mysql');
-const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'corona_tracker'
-})
 
 global.counter = 0
-const addProvince = (req, res) => {
-    const { name, recovered, death, positive } = req.body
-    var url = '/api/v1/provinces/' + (global.counter + 1)
-    connection.query(`INSERT INTO provinces(name, recovered, death, positive, url) VALUES ('${name}',${recovered},${death},${positive},'${url}')`, function (error, results, fields) {
+global.before = []
 
-        if (error || results == '') res.json({ status: false, message: 'Id not found' })
+const addProvince = (req, res) => {
+    conn.query('SELECT * FROM `provinces` WHERE isDeleted = 0', function (error, results, fields) {
+        if (error || results == '') res.json({ status: false, message: 'Fetching data failed' })
         else {
-            res.json({ status: true, stored: req.body })
-            global.counter++
+            global.counter = results.length
+            const { name, recovered, death, positive } = req.body
+            var url = '/api/v1/provinces/' + (global.counter + 1)
+            conn.query(`INSERT INTO provinces(name, recovered, death, positive, url) VALUES ('${name}',${recovered},${death},${positive},'${url}')`, function (error, results, fields) {
+                if (error || results == '') res.json({ status: false, message: 'Storing data failed' })
+                else {
+                    res.json({ status: true, stored: req.body })
+                    global.counter++
+                }
+            })
         }
     })
 }
 
-
 const getProvinces = (req, res) => {
-    connection.query('SELECT * FROM `provinces`', function (error, results, fields) {
-        if (error) res.json({ status: false, message: 'Fetching data failed' })
+    conn.query('SELECT * FROM `provinces` WHERE isDeleted = 0', function (error, results, fields) {
+        if (error || results == '') res.json({ status: false, message: 'Fetching data failed' })
         else {
-            res.json({ status: true, totalData: results.length, message: "Fetching data success", data: results })
+            results = JSON.parse(JSON.stringify(results))
+            global.before = []
+            for (let i = 0; i < results.length; i++) {
+                global.before.push(
+                    {
+                        name: results[i].name,
+                        recovered: results[i].recovered,
+                        death: results[i].death,
+                        positive: results[i].positive
+                    }
+                )
+            }
+            res.json({ status: true, totalData: results.length, message: 'Fetching data success', data: global.before })
             global.counter = results.length
         }
     })
@@ -34,41 +47,72 @@ const getProvinces = (req, res) => {
 
 const getProvince = (req, res) => {
     var { id } = req.params
-    connection.query(`SELECT * FROM provinces WHERE RIGHT(url, 1) = ${id}`, function (error, results, fields) {
+    conn.query(`SELECT * FROM provinces WHERE RIGHT(url, 1) = ? AND isDeleted = 0`, [id], function (error, results, fields) {
         if (error || results == '') res.json({ status: false, message: 'Id not found' })
-        else res.json({ status: true, stored: results })
+        else {
+            results = JSON.parse(JSON.stringify(results))
+            global.before = [
+                {
+                    name: results[0].name,
+                    recovered: results[0].recovered,
+                    death: results[0].death,
+                    positive: results[0].positive
+                }
+            ]
+            res.json({ status: true, stored: global.before })
+        }
     })
 }
 
 const updateProvince = (req, res) => {
     var { id, name, recovered, death, positive } = req.body
-    connection.query(`SELECT * FROM provinces WHERE RIGHT(url, 1)=${id}`, (error, results, fields) => {
-        global.before = results
-        if (error || results == '') res.json({ status: false, message: 'Fetching data failed' })
+    conn.query(`SELECT * FROM provinces WHERE RIGHT(url, 1) = ? AND isDeleted = 0`, [id], (error, results, fields) => {
+        if (error || results == '') res.json({ status: false, message: 'No Data' })
         else {
-            connection.query(`UPDATE provinces SET name='${name}',recovered='${recovered}',death='${death}',positive='${positive}' WHERE RIGHT(url, 1) = ${id}`)
-            const after = [
+            results = JSON.parse(JSON.stringify(results))
+            global.before = [
                 {
-                    name: name,
-                    recovered: recovered,
-                    death: death,
-                    positive: positive
+                    name: results[0].name,
+                    recovered: results[0].recovered,
+                    death: results[0].death,
+                    positive: results[0].positive
                 }
             ]
+            conn.query(`UPDATE provinces SET name = ?, recovered = ?, death = ?, positive = ? WHERE RIGHT(url, 1) = ? AND isDeleted = 0`, [name, recovered, death, positive, id], (error, results, fields) => {
+                if (error) res.json({ status: false, message: 'Updating data failed' })
+                else if (results == '') res.json({ status: false, message: 'Id not found' })
+                else {
+                    const after = [
+                        {
+                            name: name,
+                            recovered: recovered,
+                            death: death,
+                            positive: positive
+                        }
+                    ]
+                    res.json({ status: true, message: 'Updating data success', before: global.before, after: after })
+                }
+            })
 
-            res.json({ status: true, message: 'Updating data success', before: global.before, after: after })
         }
     })
 }
 
 const deleteProvince = (req, res) => {
     var { id } = req.body
-    connection.query(`SELECT * FROM provinces WHERE RIGHT(url, 1)=${id}`, (error, results, fields) => {
-        if (error) res.json({ status: false, message: 'Destroy data failed' })
-        else if (results == '') res.json({ status: false, message: 'Id not found' })
+    conn.query(`SELECT * FROM provinces WHERE RIGHT(url, 1) = ? AND isDeleted = 0`, [id], (error, results, fields) => {
+        if (error || results == '') res.json({ status: false, message: 'No Data' })
         else {
-            global.before = results
-            connection.query(`DELETE FROM provinces WHERE RIGHT(url, 1) = ${id}`, (error, results, fields) => {
+            results = JSON.parse(JSON.stringify(results))
+            global.before = [
+                {
+                    name: results[0].name,
+                    recovered: results[0].recovered,
+                    death: results[0].death,
+                    positive: results[0].positive
+                }
+            ]
+            conn.query(`UPDATE provinces SET isDeleted=1 WHERE RIGHT(url, 1) = ?`, [id], (error, results, fields) => {
                 if (error) res.json({ status: false, message: 'Destroy data failed' })
                 else if (results == '') res.json({ status: false, message: 'Id not found' })
                 else {
@@ -78,7 +122,6 @@ const deleteProvince = (req, res) => {
             })
         }
     })
-
 }
 
 module.exports = {
